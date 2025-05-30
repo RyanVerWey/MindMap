@@ -1,34 +1,37 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import Header from './components/Header';
 import Home from './pages/Home';
 import Settings from './pages/Settings';
 import Project from './pages/Project';
 
 const App = () => {
-  const appStyles = { fontFamily: 'Arial, sans-serif', minHeight: '100vh', margin: 0, padding: '1rem' };
-
-  const navStyles = {
+  const appStyles = {
+    fontFamily: 'Arial, sans-serif',
+    minHeight: '100vh',
+    margin: 0,
     display: 'flex',
-    gap: '1rem',
-    marginBottom: '1rem',
-    padding: '0.5rem 0',
-    borderBottom: '1px solid #ccc',
+    flexDirection: 'column',
+    backgroundColor: '#f3f4f6', // light background
+  };
+
+  const contentStyles = {
+    flex: 1, // take up all remaining vertical space
+    width: '100%',
+    overflow: 'auto', // allow scrolling if needed
   };
 
   return (
     <Router>
       <div style={appStyles}>
-        <nav style={navStyles}>
-          <Link to="/">Home</Link>
-          <Link to="/project">Mind Map</Link>
-          <Link to="/settings">Settings</Link>
-        </nav>
-
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/project" element={<Project />} />
-          <Route path="/settings" element={<Settings />} />
-        </Routes>
+        <Header />
+        <div style={contentStyles}>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/project" element={<Project />} />
+            <Route path="/settings" element={<Settings />} />
+          </Routes>
+        </div>
       </div>
     </Router>
   );

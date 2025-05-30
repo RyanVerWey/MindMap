@@ -5,17 +5,8 @@ const SaveLoadButtons = ({ setNodes, setEdges }) => {
   const buttonContainerStyles = {
     display: 'flex',
     justifyContent: 'center',
-    gap: '1rem',
-    marginBottom: '1rem',
-  };
-
-  const buttonStyles = {
-    padding: '0.5rem 1rem',
-    borderRadius: '4px',
-    border: 'none',
-    backgroundColor: '#2196f3',
-    color: '#fff',
-    cursor: 'pointer',
+    gap: 'var(--spacing-md)',
+    marginBottom: 'var(--spacing-md)',
   };
 
   const handleSave = async () => {
@@ -49,12 +40,13 @@ const SaveLoadButtons = ({ setNodes, setEdges }) => {
 
   return (
     <div style={buttonContainerStyles}>
-      <button style={buttonStyles} onClick={handleSave}>Save Map</button>
-      <button style={buttonStyles} onClick={handleLoad}>Load Map</button>
-      <button
-        style={{ ...buttonStyles, backgroundColor: '#f44336' }}
-        onClick={handleClear}
-      >
+      <button className="action-button" onClick={handleSave}>
+        Save Map
+      </button>
+      <button className="action-button" onClick={handleLoad}>
+        Load Map
+      </button>
+      <button className="action-button danger" onClick={handleClear}>
         Clear Canvas
       </button>
     </div>
