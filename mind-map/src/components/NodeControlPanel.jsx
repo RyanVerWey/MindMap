@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { nanoid } from 'nanoid';
-import { toPng } from 'html-to-image';
+import api from '../api';
 
-const NodeControlPanel = ({ nodes, setNodes, setEdges, canvasRef }) => {
+const NodeControlPanel = ({ nodes, edges, setNodes, setEdges }) => {
   const [label, setLabel] = useState('');
   const [description, setDescription] = useState('');
   const [parentId, setParentId] = useState('');
@@ -10,25 +10,39 @@ const NodeControlPanel = ({ nodes, setNodes, setEdges, canvasRef }) => {
   const [width, setWidth] = useState(150);
   const [height, setHeight] = useState(100);
 
+  const [mapName, setMapName] = useState('');
+  const [savedMaps, setSavedMaps] = useState([]);
+  const [selectedMap, setSelectedMap] = useState('');
+
+  useEffect(() => {
+    loadSavedMaps();
+  }, []);
+
+  const loadSavedMaps = async () => {
+    try {
+      const res = await api.get('/maps');
+      setSavedMaps(res.data.maps || []);
+    } catch (err) {
+      console.error(err);
+      alert('Failed to load saved maps.');
+    }
+  };
+
   const handleAddNode = () => {
     if (!label.trim()) {
       alert('Please enter a node label.');
       return;
     }
 
-    const trimmedDescription = description.trim().slice(0, 300);
-    const clampedWidth = Math.min(Math.max(parseInt(width) || 150, 100), 600);
-    const clampedHeight = Math.min(Math.max(parseInt(height) || 100, 50), 600);
     const newId = nanoid();
-
     const newNode = {
       id: newId,
       type: nodeType,
       data: {
         label,
-        description: trimmedDescription,
-        width: clampedWidth,
-        height: clampedHeight,
+        description: description.trim().slice(0, 300),
+        width: Math.min(Math.max(parseInt(width) || 150, 100), 600),
+        height: Math.min(Math.max(parseInt(height) || 100, 50), 600),
       },
       position: { x: Math.random() * 400, y: Math.random() * 400 },
     };
@@ -44,8 +58,6 @@ const NodeControlPanel = ({ nodes, setNodes, setEdges, canvasRef }) => {
           target: newId,
         };
         setEdges((prev) => [...prev, newEdge]);
-      } else {
-        alert(`Parent ID "${parentId}" not found. Node added without connection.`);
       }
     }
 
@@ -56,168 +68,173 @@ const NodeControlPanel = ({ nodes, setNodes, setEdges, canvasRef }) => {
     setHeight(100);
   };
 
-  const handleExportPng = () => {
-    if (canvasRef && canvasRef.current) {
-      toPng(canvasRef.current, { backgroundColor: 'transparent' })
-        .then((dataUrl) => {
-          const link = document.createElement('a');
-          link.download = 'mindmap-export.png';
-          link.href = dataUrl;
-          link.click();
-        })
-        .catch((err) => {
-          console.error('Export failed:', err);
-          alert('Failed to export image.');
-        });
-    } else {
-      alert('Could not find the canvas to export.');
+  const handleSaveMapWithName = async () => {
+    if (!mapName.trim()) {
+      alert('Please enter a map name.');
+      return;
+    }
+
+    try {
+      await api.post('/map', { name: mapName, nodes, edges });
+      alert(`Map "${mapName}" saved to server.`);
+      loadSavedMaps();
+    } catch (err) {
+      console.error(err);
+      alert('Failed to save map.');
     }
   };
 
+  const handleLoadMapByName = async (selectedName) => {
+    if (!selectedName) return;
+    try {
+      const res = await api.get(`/map/${selectedName}`);
+      setNodes(res.data.nodes || []);
+      setEdges(res.data.edges || []);
+      alert(`Loaded map "${selectedName}".`);
+    } catch (err) {
+      console.error(err);
+      alert('Failed to load map.');
+    }
+  };
+
+  const handleDeleteMapByName = async () => {
+    if (!selectedMap) {
+      alert('Please select a map to delete.');
+      return;
+    }
+    if (!window.confirm(`Are you sure you want to delete map "${selectedMap}"?`)) {
+      return;
+    }
+
+    try {
+      await api.delete(`/map/${selectedMap}`);
+      alert(`Deleted map "${selectedMap}".`);
+      loadSavedMaps();
+      setSelectedMap('');
+      setNodes([]);
+      setEdges([]);
+    } catch (err) {
+      console.error(err);
+      alert('Failed to delete map.');
+    }
+  };
+
+  const handleLoadTemplate = async (templateName) => {
+    try {
+      const res = await api.get(`/template/${templateName}`);
+      setNodes(res.data.nodes || []);
+      setEdges(res.data.edges || []);
+      alert(`Template "${templateName}" loaded.`);
+    } catch (err) {
+      console.error(err);
+      alert(`Failed to load template "${templateName}".`);
+    }
+  };
+
+  const styles = {
+    panel: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '1.5rem',
+      width: '100%',
+      maxWidth: '480px',
+      padding: '1.5rem',
+      backgroundColor: '#fff',
+      borderRadius: '12px',
+      boxShadow: '0 8px 24px rgba(0,0,0,0.1)',
+      fontFamily: 'Segoe UI, sans-serif',
+      color: '#333',
+    },
+    section: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '0.75rem',
+      borderBottom: '1px solid #eee',
+      paddingBottom: '1rem',
+    },
+    sectionTitle: {
+      fontSize: '1.1rem',
+      fontWeight: '600',
+      marginBottom: '0.25rem',
+    },
+    input: {
+      padding: '0.5rem 0.75rem',
+      borderRadius: '6px',
+      border: '1px solid #ccc',
+      fontSize: '0.9rem',
+    },
+    button: {
+      padding: '0.6rem',
+      borderRadius: '6px',
+      backgroundColor: '#3b82f6',
+      color: '#fff',
+      fontWeight: '600',
+      border: 'none',
+      cursor: 'pointer',
+      transition: 'background-color 0.2s',
+    },
+    deleteButton: {
+      padding: '0.6rem',
+      borderRadius: '6px',
+      backgroundColor: '#e53935',
+      color: '#fff',
+      fontWeight: '600',
+      border: 'none',
+      cursor: 'pointer',
+      transition: 'background-color 0.2s',
+    },
+    dropdown: {
+      padding: '0.5rem 0.75rem',
+      borderRadius: '6px',
+      border: '1px solid #ccc',
+      fontSize: '0.9rem',
+    },
+  };
+
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 'var(--spacing-md)',
-        width: '100%',
-        maxWidth: '500px',
-        boxSizing: 'border-box',
-        margin: '0 auto',
-        padding: 'var(--spacing-md)',
-        backgroundColor: 'var(--color-surface)',
-        borderRadius: 'var(--radius-md)',
-        boxShadow: 'var(--shadow-md)',
-      }}
-    >
-      <h3 style={{ textAlign: 'center', marginBottom: 'var(--spacing-sm)' }}>
-        Add New Node
-      </h3>
-
-      <input
-        className="node-input"
-        type="text"
-        value={label}
-        placeholder="Node title (required)"
-        onChange={(e) => setLabel(e.target.value)}
-      />
-
-      <textarea
-        className="node-input"
-        value={description}
-        placeholder="Node description (max 300 characters)"
-        maxLength={300}
-        rows={3}
-        onChange={(e) => setDescription(e.target.value)}
-        style={{ resize: 'none' }}
-      />
-      <div
-        style={{
-          fontSize: '0.75rem',
-          textAlign: 'right',
-          color: 'var(--color-text-secondary)',
-        }}
-      >
-        {description.length}/300 characters
+    <div style={styles.panel}>
+      {/* New Node Controls */}
+      <div style={styles.section}>
+        <div style={styles.sectionTitle}>New Node Controls</div>
+        <input style={styles.input} value={label} placeholder="Node title" onChange={(e) => setLabel(e.target.value)} />
+        <textarea style={styles.input} value={description} placeholder="Node description" onChange={(e) => setDescription(e.target.value)} />
+        <input style={styles.input} value={parentId} placeholder="Parent node ID (optional)" onChange={(e) => setParentId(e.target.value)} />
+        <select style={styles.dropdown} value={nodeType} onChange={(e) => setNodeType(e.target.value)}>
+          <option value="process">Process Node</option>
+          <option value="workflow">Workflow Node</option>
+          <option value="user">User Node</option>
+          <option value="dimensions">Dimensions Node</option>
+        </select>
+        <input style={styles.input} type="number" value={width} onChange={(e) => setWidth(e.target.value)} placeholder="Width" />
+        <input style={styles.input} type="number" value={height} onChange={(e) => setHeight(e.target.value)} placeholder="Height" />
+        <button style={styles.button} onClick={handleAddNode}>Add Node</button>
       </div>
 
-      <input
-        className="node-input"
-        type="text"
-        value={parentId}
-        placeholder="Optional parent node ID"
-        onChange={(e) => setParentId(e.target.value)}
-      />
-
-      <select
-        className="node-input"
-        value={nodeType}
-        onChange={(e) => setNodeType(e.target.value)}
-      >
-        <option value="process">Process Node</option>
-        <option value="workflow">Workflow Node</option>
-        <option value="user">User Node</option>
-        <option value="dimensions">Dimensions Node</option>
-      </select>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-sm)' }}>
-        <div>
-          <label
-            style={{
-              fontSize: '0.75rem',
-              marginBottom: '0.25rem',
-              display: 'block',
-              color: 'var(--color-text-secondary)',
-            }}
-          >
-            Width (px)
-          </label>
-          <input
-            className="node-input"
-            type="number"
-            value={width}
-            min={100}
-            max={600}
-            onChange={(e) => setWidth(e.target.value)}
-            style={{ width: '100%' }}
-          />
-        </div>
-
-        <div>
-          <label
-            style={{
-              fontSize: '0.75rem',
-              marginBottom: '0.25rem',
-              display: 'block',
-              color: 'var(--color-text-secondary)',
-            }}
-          >
-            Height (px)
-          </label>
-          <input
-            className="node-input"
-            type="number"
-            value={height}
-            min={50}
-            max={600}
-            onChange={(e) => setHeight(e.target.value)}
-            style={{ width: '100%' }}
-          />
-        </div>
+      {/* Project Templates */}
+      <div style={styles.section}>
+        <div style={styles.sectionTitle}>Project Templates</div>
+        <button style={styles.button} onClick={() => handleLoadTemplate('frontend-workflow')}>Load Frontend Workflow</button>
+        <button style={styles.button} onClick={() => handleLoadTemplate('bug-fix-workflow')}>Load Bug Fix Workflow</button>
       </div>
 
-      <button
-        className="node-button"
-        onClick={handleAddNode}
-        style={{
-          padding: 'var(--spacing-sm)',
-          borderRadius: 'var(--radius-md)',
-          backgroundColor: 'var(--color-primary)',
-          color: '#fff',
-          fontWeight: 'bold',
-          cursor: 'pointer',
-          transition: 'transform 0.2s ease',
-        }}
-        onMouseOver={(e) => (e.currentTarget.style.transform = 'scale(1.05)')}
-        onMouseOut={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-      >
-        ➕ Add Node
-      </button>
-
-      <button
-        onClick={handleExportPng}
-        style={{
-          padding: '0.5rem',
-          borderRadius: 'var(--radius-md)',
-          backgroundColor: '#4caf50',
-          color: '#fff',
-          fontWeight: 'bold',
-          cursor: 'pointer',
-          marginTop: '1rem',
-        }}
-      >
-        📸 Export as PNG
-      </button>
+      {/* Map Save / Load Controls */}
+      <div style={styles.section}>
+        <div style={styles.sectionTitle}>Map Save / Load</div>
+        <input style={styles.input} value={mapName} placeholder="Map name" onChange={(e) => setMapName(e.target.value)} />
+        <button style={styles.button} onClick={handleSaveMapWithName}>Save Map as "{mapName || 'Untitled'}"</button>
+        <select
+          style={styles.dropdown}
+          value={selectedMap}
+          onChange={(e) => setSelectedMap(e.target.value)}
+        >
+          <option value="">Select saved map</option>
+          {savedMaps.map((name) => (
+            <option key={name} value={name}>{name}</option>
+          ))}
+        </select>
+        <button style={styles.button} onClick={() => handleLoadMapByName(selectedMap)}>Load Selected Map</button>
+        <button style={styles.deleteButton} onClick={handleDeleteMapByName}>Delete Selected Map</button>
+      </div>
     </div>
   );
 };

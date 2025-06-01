@@ -1,7 +1,6 @@
 import React, { useState, useRef } from 'react';
 import MindMapCanvas from '../components/MindMapCanvas';
 import NodeControlPanel from '../components/NodeControlPanel';
-import SaveLoadButtons from '../components/SaveLoadButtons';
 import EditNodeModal from '../components/EditNodeModal';
 import EdgeEditModal from '../components/EdgeEditModal';
 
@@ -10,13 +9,16 @@ const Project = () => {
   const [edges, setEdges] = useState([]);
   const [editingNode, setEditingNode] = useState(null);
   const [editingEdge, setEditingEdge] = useState(null);
-  const [showGrid, setShowGrid] = useState(true); // ✅ new state
-
+  const [showGrid, setShowGrid] = useState(true);
   const canvasRef = useRef(null);
 
+  const toggleGrid = () => {
+    setShowGrid((prev) => !prev);
+  };
+
   const handleSaveEditNode = (updatedNode) => {
-    setNodes((prevNodes) =>
-      prevNodes.map((n) => (n.id === updatedNode.id ? updatedNode : n))
+    setNodes((prev) =>
+      prev.map((n) => (n.id === updatedNode.id ? updatedNode : n))
     );
   };
 
@@ -27,16 +29,10 @@ const Project = () => {
   };
 
   const handleSaveEditEdge = (updatedEdge) => {
-    setEdges((prevEdges) =>
-      prevEdges.map((e) =>
+    setEdges((prev) =>
+      prev.map((e) =>
         e.id === updatedEdge.id
-          ? {
-              ...e,
-              data: {
-                ...e.data,
-                annotation: updatedEdge.data.annotation,
-              },
-            }
+          ? { ...e, data: { ...e.data, annotation: updatedEdge.data.annotation } }
           : e
       )
     );
@@ -44,12 +40,8 @@ const Project = () => {
   };
 
   const handleDeleteEdge = (edgeId) => {
-    setEdges((prevEdges) => prevEdges.filter((e) => e.id !== edgeId));
+    setEdges((prev) => prev.filter((e) => e.id !== edgeId));
     setEditingEdge(null);
-  };
-
-  const toggleGrid = () => {
-    setShowGrid((prev) => !prev);
   };
 
   return (
@@ -79,11 +71,11 @@ const Project = () => {
       >
         <NodeControlPanel
           nodes={nodes}
+          edges={edges}
           setNodes={setNodes}
           setEdges={setEdges}
           canvasRef={canvasRef}
         />
-        <SaveLoadButtons setNodes={setNodes} setEdges={setEdges} />
 
         <button
           onClick={toggleGrid}
@@ -96,7 +88,7 @@ const Project = () => {
             cursor: 'pointer',
           }}
         >
-          {showGrid ? '🛑 Hide Grid' : '📐 Show Grid'}
+          {showGrid ? 'Hide Grid' : 'Show Grid'}
         </button>
       </div>
 
@@ -119,7 +111,7 @@ const Project = () => {
           setEdges={setEdges}
           onNodeClick={(e, node) => setEditingNode(node)}
           onEdgeClick={(e, edge) => setEditingEdge(edge)}
-          showGrid={showGrid} // ✅ pass grid toggle
+          showGrid={showGrid}
         />
       </div>
 

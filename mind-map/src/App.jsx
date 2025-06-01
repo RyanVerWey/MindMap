@@ -12,13 +12,13 @@ const App = () => {
     margin: 0,
     display: 'flex',
     flexDirection: 'column',
-    backgroundColor: '#f3f4f6', // light background
+    backgroundColor: '#f3f4f6', 
   };
 
   const contentStyles = {
-    flex: 1, // take up all remaining vertical space
+    flex: 1, 
     width: '100%',
-    overflow: 'auto', // allow scrolling if needed
+    overflow: 'auto', 
   };
 
   return (
